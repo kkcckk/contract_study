@@ -11,6 +11,8 @@ contract Ballot {
         bool voted;
         // 投票的提案的编号
         uint vote;
+        // 委派地址
+        address delegate;
     }
     
     // 创建提案结构体 Proposal
@@ -87,6 +89,46 @@ contract Ballot {
 
     // 投票者可以委派别人投票
     function delegate(address to) public {
+        /**
+         * 首先要做一些判断：
+         * 1. 首先委托者不能投过票了，投票过了就没有权力进行委托了
+         * 2. 其次委托者的权重必须是大于0,大于0说明有选票
+         * 3. 最后不能自己委托自己
+         */
         
+        // 找出委托地址, 因为要改变状态，所以用storage存储位置，其实就是找出调用这个函数的人，即msg.sender
+        Voter storage dv = voters[msg.sender];
+
+        // 进行条件判断
+        require(!dv.voted, "This address has been voted.");
+
+        // 权重大于0
+        require(dv.weight > 0, "You don't have the right to vote");
+
+        // 地址不能是自己
+        require(msg.sender != to, "You can't deletegate yourself.");
+
+        // 循环找出最终的委派地址，因为可能委派的人其实把把自己的权力委派出去了
+        while (to!=address(0)) {
+            to = voters[to].delegate;
+            // 要求to不能是msg.sender
+            require(to != msg.sender);
+        }
+
+        // 认为委派地址必须是有投票权利的
+        require(voters[to].weight >= 1);
+
+        // 找出最终委派地址后，如果投票了，直接给对应的提案票数+1
+        // 如果没有投票，则把委托地址的权重加给委派地址的权重
+        if (!voters[to].voted){
+            voters[to].weight += dv.weight;
+        } else {
+            proposals[voters[to].vote].voteCount += dv.weight;
+        }
+
+        // 同时改变一下委托者的状态
+        dv.voted = true;
+        dv.weight = 0;
+        dv.delegate = to;
     }
 }
