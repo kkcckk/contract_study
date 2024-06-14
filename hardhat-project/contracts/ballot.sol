@@ -131,4 +131,40 @@ contract Ballot {
         dv.weight = 0;
         dv.delegate = to;
     }
+
+    // 给提案投票投票
+    function vote(uint proposal) public {
+        // 找出调用这个函数的sender，如果sender没有投票，则把sender的票加到对应提案中
+        require(!voters[msg.sender].voted, "Sender has already voted.");
+        require(voters[msg.sender].weight > 0, "Sender has no right to vote.");
+
+        // 开始加票
+        proposals[proposal].voteCount += voters[msg.sender].weight;
+
+        // 改变状态
+        voters[msg.sender].voted=true;
+        voters[msg.sender].vote=proposal;
+    }
+
+    // 找出最终票数最多的提案编号
+    function winningProposal() private view returns(uint winningProposal_) {
+        // 循环比较，找出提案编号
+        // uint winningProposal_ = 0;
+        // 投票数
+        uint voteCount = 0;
+
+        for (uint i = 0; i < proposals.length; i++) {
+            if(proposals[i].voteCount > voteCount) {
+                voteCount = proposals[i].voteCount;
+                winningProposal_ = i;
+            }
+        }
+
+        // return winningProposal_;
+    }
+
+    // 返回提案名称
+    function winningProposalName() external view returns(bytes32 winningProposalName_) {
+        winningProposalName_ = proposals[winningProposal()].shortName;
+    }
 }
