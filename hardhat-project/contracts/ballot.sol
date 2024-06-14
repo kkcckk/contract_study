@@ -153,10 +153,10 @@ contract Ballot {
         // 投票数
         uint voteCount = 0;
 
-        for (uint i = 0; i < proposals.length; i++) {
-            if(proposals[i].voteCount > voteCount) {
-                voteCount = proposals[i].voteCount;
-                winningProposal_ = i;
+        for (uint p = 0; p < proposals.length; p++) {
+            if(proposals[p].voteCount > voteCount) {
+                voteCount = proposals[p].voteCount;
+                winningProposal_ = p;
             }
         }
 
