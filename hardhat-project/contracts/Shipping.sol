@@ -33,7 +33,7 @@ contract Shipping {
     }
 
     // 内部判断状态之后，有枚举值转换为unicode字面值
-    function getStatusInterval(ShippingStatus _status) internal pure returns(string memory) {
+    function getStatusInterval(ShippingStatus _status) internal pure returns(string memory status_) {
         if (_status == ShippingStatus.Pending) return "Pending";
         if (_status == ShippingStatus.Shipping) return "Shipping";
         if (_status == ShippingStatus.Delivered) return "Delivered";
@@ -41,7 +41,7 @@ contract Shipping {
     }
 
     // 供外部使用获取货物状态
-    function getStatus() public view returns(string memory) {
+    function getStatus() public view returns(string memory status_) {
         ShippingStatus _status = status;
         return getStatusInterval(_status);
     }

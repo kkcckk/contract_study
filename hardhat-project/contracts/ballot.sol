@@ -14,7 +14,7 @@ contract Ballot {
         // 委派地址
         address delegate;
     }
-    
+
     // 创建提案结构体 Proposal
     struct Proposal {
         // 提案的名称
@@ -27,10 +27,10 @@ contract Ballot {
     address public chairperson;
 
     // 提案数组
-    Proposal[] proposals;
-    
+    Proposal[] public proposals;
+
     // 投票人，通过地址进行映射
-    mapping (address => Voter) voters;
+    mapping(address => Voter) public voters;
 
     // 构造器，会初始化投票发起人，和提案数组
     constructor(bytes32[] memory proposalNames) {
@@ -47,7 +47,9 @@ contract Ballot {
 
             // 方式2
             // Proposal memory p = Proposal({shortName: proposalNames[i], voteCount: 0});
-            proposals.push(Proposal({shortName: proposalNames[i], voteCount: 0}));
+            proposals.push(
+                Proposal({shortName: proposalNames[i], voteCount: 0})
+            );
 
             /**
              * 注意，先创建结构体实例再push进数组会消耗更多的gas，因为要先分配内存空间存储结构体的临时变量，之后再push进数组，两步操作都要消耗gas；
@@ -58,22 +60,25 @@ contract Ballot {
     }
 
     // 权限修饰器，用于指定giveRight2Address函数只能被chairperson调用
-    modifier onlyOwner {
-        require(chairperson == msg.sender, "Access denied, only chairperson can use.");
+    modifier onlyOwner() {
+        require(
+            chairperson == msg.sender,
+            "Access denied, only chairperson can use."
+        );
         _;
     }
 
     // 分发投票数量给每个地址,只有投票发起人可以调用
-    function giveRight2Address(address voterAddress) public onlyOwner{
+    function giveRight2Address(address voterAddress) public onlyOwner {
         // 找出传入的地址对应的voter
         // Voter memory v = voters[voterAddress];
         // 只有chairperson有权利调用这个函数
         // require(msg.sender == chairperson, "Access denied, only chairperson can use");
         // 判断 传入地址是否投票
-        require(voters[voterAddress].voted, "You have already voted.");
+        require(!voters[voterAddress].voted, "You have already voted.");
 
         // 如果没有投票，那么必须要给予一张选票
-        require(voters[voterAddress].weight == 0);
+        require(voters[voterAddress].weight == 0, "the address already have the weight");
 
         voters[voterAddress].weight = 1;
 
@@ -95,7 +100,7 @@ contract Ballot {
          * 2. 其次委托者的权重必须是大于0,大于0说明有选票
          * 3. 最后不能自己委托自己
          */
-        
+
         // 找出委托地址, 因为要改变状态，所以用storage存储位置，其实就是找出调用这个函数的人，即msg.sender
         Voter storage dv = voters[msg.sender];
 
@@ -109,18 +114,18 @@ contract Ballot {
         require(msg.sender != to, "You can't deletegate yourself.");
 
         // 循环找出最终的委派地址，因为可能委派的人其实把把自己的权力委派出去了
-        while (to!=address(0)) {
+        while (voters[to].delegate != address(0)) {
             to = voters[to].delegate;
             // 要求to不能是msg.sender
-            require(to != msg.sender);
+            require(to != msg.sender, "Address can not be msg.sender");
         }
 
         // 认为委派地址必须是有投票权利的
-        require(voters[to].weight >= 1);
+        require(voters[to].weight >= 1, "voter don't have the right to vote");
 
         // 找出最终委派地址后，如果投票了，直接给对应的提案票数+1
         // 如果没有投票，则把委托地址的权重加给委派地址的权重
-        if (!voters[to].voted){
+        if (!voters[to].voted) {
             voters[to].weight += dv.weight;
         } else {
             proposals[voters[to].vote].voteCount += dv.weight;
@@ -133,28 +138,28 @@ contract Ballot {
     }
 
     // 给提案投票投票
-    function vote(uint proposal) public {
+    function vote(uint proposal) external {
         // 找出调用这个函数的sender，如果sender没有投票，则把sender的票加到对应提案中
-        require(!voters[msg.sender].voted, "Sender has already voted.");
         require(voters[msg.sender].weight > 0, "Sender has no right to vote.");
+        require(!voters[msg.sender].voted, "Sender has already voted.");
 
         // 开始加票
         proposals[proposal].voteCount += voters[msg.sender].weight;
 
         // 改变状态
-        voters[msg.sender].voted=true;
-        voters[msg.sender].vote=proposal;
+        voters[msg.sender].voted = true;
+        voters[msg.sender].vote = proposal;
     }
 
     // 找出最终票数最多的提案编号
-    function winningProposal() private view returns(uint winningProposal_) {
+    function winningProposal() private view returns (uint winningProposal_) {
         // 循环比较，找出提案编号
         // uint winningProposal_ = 0;
         // 投票数
         uint voteCount = 0;
 
         for (uint p = 0; p < proposals.length; p++) {
-            if(proposals[p].voteCount > voteCount) {
+            if (proposals[p].voteCount > voteCount) {
                 voteCount = proposals[p].voteCount;
                 winningProposal_ = p;
             }
@@ -164,7 +169,11 @@ contract Ballot {
     }
 
     // 返回提案名称
-    function winningProposalName() external view returns(bytes32 winningProposalName_) {
+    function winningProposalName()
+        external
+        view
+        returns (bytes32 winningProposalName_)
+    {
         winningProposalName_ = proposals[winningProposal()].shortName;
     }
 }
