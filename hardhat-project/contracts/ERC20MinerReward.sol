@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 
 contract ERC20MinerReward is ERC20{
-
     // 定义一个事件
     event LogNewAlert(string description, address indexed _from, uint256 _n);
 
